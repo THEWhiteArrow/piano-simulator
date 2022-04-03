@@ -11,7 +11,6 @@ const utility = (() => {
       { name: 'G', isSharp: true },
    ];
 
-
    const delay = (time) => {
       return new Promise((resolve, reject) => {
          setTimeout(() => {
@@ -20,27 +19,32 @@ const utility = (() => {
       })
    }
 
-
    const convertToArr = (text) => {
-      text = (text + ' ').toUpperCase().replaceAll('#', 'S')
+      // ##### NEW CODE #####
+      return [...text.toUpperCase().split(' ')].map((el) => ([...el.split('&').filter((item) => (item != ''))]))
 
-      const arr = []
-      for (let i = 0; i < text.length; ++i)
-         if (text[i] != ' ')
-            for (let j = i + 1; j < text.length; ++j)
-               if (text[j] == ' ') {
-                  arr.push(text.substr(i, j - i))
-                  i = j;
-                  break;
-               }
-      return arr;
+
+      // ##### OLD CODE - I AM LEAVING IS AS IS JUST AS A PROOF THAT REFACTORING MAKES THE DIFFERENCE #####
+
+      // text = (text + ' ').toUpperCase().replaceAll('#', 'S')
+      // const arr = []
+      // for (let i = 0; i < text.length; ++i)
+      //    if (text[i] != ' ')
+      //       for (let j = i + 1; j < text.length; ++j)
+      //          if (text[j] == ' ') {
+      //             arr.push(
+      //                [...text.substr(i, j - i).split('&')].filter((el) => (el != ''))
+      //             )
+      //             i = j;
+      //             break;
+      //          }
+      // return arr;
    }
-
-
 
    const createWhiteKey = (pianoId, name, oktawa) => (
       `<div id="${pianoId}${name}${oktawa}" class="key white">${name}${oktawa}</div>`
    )
+
    const createWhiteBlackKey = (pianoId, name, oktawa) => (
       `
       <div id="${pianoId}${name}${oktawa}" class="key white">

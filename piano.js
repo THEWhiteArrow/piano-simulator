@@ -2,30 +2,12 @@ const pianoModule = (() => {
    'use strict';
 
    class Key {
-      constructor(pianoId, id, oktawa) {
-         this.id = id.toUpperCase();
+      constructor(pianoId, keyId, oktawa) {
+         this.id = keyId.toUpperCase();
          this.oktawa = oktawa;
          this.key = document.getElementById(pianoId + this.id + this.oktawa);
-         this.sound = new Audio(`/sounds/${(id + oktawa).toLowerCase().replace('s', '-')}.mp3`)
-
-         this.key.addEventListener('click', async (e) => {
-            e.stopPropagation();
-
-            try {
-               document.querySelector('#records .rec').innerHTML += this.id + this.oktawa + ' ';
-            } catch (e) {
-               console.log(e)
-            }
-
-
-            this.deactivate();
-            this.activate('bg-danger');
-            await utility.delay(250);
-            this.deactivate('bg-danger', false);
-
-         })
+         this.sound = new Audio(`/sounds/${(this.id + oktawa).toLowerCase().replace('s', '-')}.mp3`)
       }
-
       activate(className = 'bg-success') {
          if (this.key != undefined) { this.key.classList.add(className); this.key.classList.add('text-white') }
          this.sound.play();
@@ -38,7 +20,6 @@ const pianoModule = (() => {
             this.sound.currentTime = 0;
          }
       }
-
    }
    const createKey = (pianoId, id, oktawa) => (new Key(pianoId, id, oktawa));
 
@@ -60,7 +41,10 @@ const pianoModule = (() => {
          this.start = 1
          this.stop = 1
          this.notes = []
+         this.keyboard = ''
+      }
 
+      setupKeys() {
          for (let i = this.lowest; i <= this.highest; ++i)
             for (let key of utility.keys)
                if (key.isSharp) {
@@ -69,11 +53,12 @@ const pianoModule = (() => {
                } else
                   this.keys[`${key.name}${i}`] = createKey(this.pianoId, key.name, i);
       }
-      deactivateAll() {
+      deactivateAll(className, stopSound = true) {
          for (let key in this.keys)
-            this.keys[key].deactivate()
+            this.keys[key].deactivate(className, stopSound)
       }
       resetRange(a = 1, b = 1) {
+         this.deactivateAll();
          this.isPlaying = false
          this.progress = a
          this.start = a
@@ -107,14 +92,16 @@ const pianoModule = (() => {
             this.progress = this.start;
             this.progressBar.style.width = `${(this.progress - 1) * 100 / this.notes.length}%`;
             await utility.delay(2 * this.timeDelay);
+            if (!this.isPlaying) return;
          }
 
-         if (this.isPlaying) {
-            this.keys[this.notes[this.progress - 1]].activate();
-            this.progressBar.style.width = `${(this.progress) * 100 / this.notes.length}%`;
-            await utility.delay(this.timeDelay);
-            this.progress++;
-         }
+         for (let keyId of this.notes[this.progress - 1])
+            this.keys[keyId].activate();
+         // this.keys[this.notes[this.progress - 1]].activate();
+         this.progressBar.style.width = `${(this.progress) * 100 / this.notes.length}%`;
+         await utility.delay(this.timeDelay);
+         this.progress++;
+
       }
       async playThePiano(data) {
          if (this.isPlaying) {
@@ -149,7 +136,28 @@ const pianoModule = (() => {
          this.rangeMaxEl.parentElement.children[0].innerText = `Max range : ${this.stop}`
          this.progress = this.start;
       }
+      async recordKey(keyId) {
+         try {
+            document.querySelector('#records .rec').innerHTML += ' ' + keyId + ' ';
+         } catch (e) {
+            console.log(e)
+         }
+
+         this.deactivateAll('bg-danger', true);
+         this.keys[keyId].activate('bg-danger');
+         await utility.delay(this.timeDelay);
+         this.keys[keyId].deactivate('bg-danger');
+      }
+      recordMultipleKeys(keyId) {
+         try {
+            document.querySelector('#records .rec').innerHTML += keyId + '&';
+         } catch (e) {
+            console.log(e)
+         }
+         this.keys[keyId].activate('bg-danger');
+      }
       setupEventListeners() {
+
          this.form.addEventListener('submit', (e) => {
             e.preventDefault();
             this.playThePiano(this.form[0].value)
@@ -167,17 +175,14 @@ const pianoModule = (() => {
          this.form[2].addEventListener('click', (e) => {
             e.stopPropagation();
             e.preventDefault();
-            this.deactivateAll();
             this.form[0].value = '';
             this.notes = [];
             this.resetRange();
-
             try {
                document.querySelector('#records .rec').innerHTML = '';
             } catch (e) {
                console.log(e)
             }
-
          })
 
          const playlistsText = document.querySelectorAll('#playlists .song')
@@ -188,6 +193,33 @@ const pianoModule = (() => {
                this.playThePiano(notes.innerText)
             })
          }
+
+         document.addEventListener('keydown', (e) => {
+            this.keyboard = e.key
+         })
+         document.addEventListener('keyup', (e) => {
+            if (this.keyboard == e.key) {
+               this.keyboard = null
+               try {
+                  document.querySelector('#records .rec').innerHTML += '&nbsp;';
+                  this.deactivateAll('bg-danger')
+               } catch (e) {
+                  console.log(e);
+               }
+            }
+         })
+         for (let keyId in this.keys) {
+            this.keys[keyId].key.addEventListener('click', async (e) => {
+               if (this.isPlaying) this.resetRange();
+               e.stopPropagation();
+               console.log(this.keyboard)
+
+               if (this.keyboard == 'Alt') this.recordMultipleKeys(keyId)
+               else await this.recordKey(keyId)
+
+            })
+         }
+
       }
 
    }
