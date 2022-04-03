@@ -5,6 +5,8 @@ html,body{
 
 .key{
    font-size:1rem;
+   cursor:pointer;
+   user-select:none;
 }
 
 .key.white{ 
@@ -16,8 +18,8 @@ html,body{
    background:var(--bs-light);
    color:var(--bs-dark);
    margin:2px;
-   width:37px;
-   height:70px;
+   width:40px;
+   height:80px;
 }
 
 .key.black{ 
@@ -26,7 +28,7 @@ html,body{
    right:0;
    transform:translate3d(60%,0,0);
    z-index:100;
-   font-size:.5em;
+   font-size:.7em;
 
 
    display:flex;
@@ -35,8 +37,8 @@ html,body{
 
    background:var(--bs-dark);
    color:var(--bs-light); 
-   width:20px;
-   height:37px;
+   width:23px;
+   height:45px;
 }
 
 .bar{
@@ -45,4 +47,8 @@ html,body{
    margin-bottom:5px;
 
    transition: width ease-in-out .5s;
+}
+
+#progressBar{
+   width:1%;
 }

@@ -1,5 +1,6 @@
 const utility = (() => {
    'use strict';
+   const SHARP = '-';
    const keys = [
       { name: 'A', isSharp: true },
       { name: 'B', isSharp: false },
@@ -52,7 +53,7 @@ const utility = (() => {
    const form = `
       <form id="form" class="mt-5 mb-3 px-0 d-flex flex-column container">
          <div id="progressBarTrack" class="bar d-flex bg-dark">
-            <div id="progressBar" class="bar bg-danger" style="width:0%;"></div>  
+            <div id="progressBar" class="bar bg-danger"></div>  
          </div>
          <div class="input-group mb-2">
             <input type="text" class="form-control" placeholder="Notes" aria-label="Notes">
@@ -62,17 +63,21 @@ const utility = (() => {
             <button class="btn btn-warning text-white d-flex col-2 justify-content-center">Stop </button>
          </div>
          <div class="d-flex row">
-            <div class="d-flex col-6 flex-column">
+            <div class="d-flex col-4 flex-column">
                <label for="rangeMin" class="form-label">Min range</label>
                <input type="range" class="form-range" id="rangeMin" step="1" min="1" max="1">
             </div>   
-            <div class="d-flex col-6 flex-column">
+            <div class="d-flex col-4 flex-column">
                <label for="rangeMax" class="form-label">Max range</label>
                <input type="range" class="form-range" id="rangeMax" step="1" min="1" max="1">
+            </div>
+            <div class="d-flex col-4 flex-column">
+               <label for="rangeDelay" class="form-label">Delay : 750</label>
+               <input type="range" class="form-range" id="rangeDelay" step="1" min="100" max="2000" value="750">
             </div>
          </div>  
       </form>
    `
 
-   return { keys, delay, convertToArr, createWhiteKey, createWhiteBlackKey, form };
+   return { keys, delay, convertToArr, createWhiteKey, createWhiteBlackKey, form, SHARP };
 })();

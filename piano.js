@@ -1,14 +1,36 @@
 const pianoModule = (() => {
    'use strict';
-
    class Key {
       constructor(pianoId, id, oktawa) {
          this.id = id.toUpperCase();
          this.oktawa = oktawa;
          this.key = document.getElementById(pianoId + this.id + this.oktawa);
+         this.sound = new Audio(`/sounds/${(id + oktawa).toLowerCase().replace('s', '-')}.mp3`)
+
+         this.key.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            this.sound.pause();
+            this.sound.currentTime = 0;
+            this.sound.play();
+            this.activate('bg-danger');
+            await utility.delay(250);
+            this.deactivate('bg-danger', false);
+
+         })
       }
-      activate(className = 'bg-success') { if (this.key != undefined) { this.key.classList.add(className); this.key.classList.add('text-white') } }
-      deactivate(className = 'bg-success') { if (this.key != undefined) { this.key.classList.remove(className); this.key.classList.remove('text-white') } }
+
+      activate(className = 'bg-success') {
+         if (this.key != undefined) { this.key.classList.add(className); this.key.classList.add('text-white') }
+         this.sound.play();
+
+      }
+      deactivate(className = 'bg-success', stopSound = true) {
+         if (this.key != undefined) { this.key.classList.remove(className); this.key.classList.remove('text-white') }
+         if (stopSound) {
+            this.sound.pause();
+            this.sound.currentTime = 0;
+         }
+      }
 
    }
    const createKey = (pianoId, id, oktawa) => (new Key(pianoId, id, oktawa));
@@ -26,8 +48,10 @@ const pianoModule = (() => {
          this.progressBar = document.querySelector(`#${this.pianoId} form #progressBar`)
          this.rangeMinEl = document.querySelector(`#${this.pianoId} form #rangeMin`)
          this.rangeMaxEl = document.querySelector(`#${this.pianoId} form #rangeMax`)
-         this.rangeMin = 1
-         this.rangeMax = 1
+         this.rangeDelay = document.querySelector(`#${this.pianoId} form #rangeDelay`)
+         this.timeDelay = 750
+         this.start = 1
+         this.stop = 1
          this.notes = []
 
          for (let i = this.lowest; i <= this.highest; ++i)
@@ -38,97 +62,116 @@ const pianoModule = (() => {
                } else
                   this.keys[`${key.name}${i}`] = createKey(this.pianoId, key.name, i);
       }
-      deactivateAll(className = 'bg-success') {
+      deactivateAll() {
          for (let key in this.keys)
-            this.keys[key].deactivate(className)
+            this.keys[key].deactivate()
       }
-      setupRange() {
-         this.progress = 0
-         this.rangeMax = this.notes.length
-         this.rangeMinEl.setAttribute('max', this.rangeMax)
-         this.rangeMaxEl.setAttribute('max', this.rangeMax)
-         this.rangeMaxEl.value = this.rangeMax;
-         this.rangeMinEl.parentElement.children[0].innerText = `Min range : ${this.rangeMin}`
-         this.rangeMaxEl.parentElement.children[0].innerText = `Max range : ${this.rangeMax}`
-      }
+      resetRange(a = 1, b = 1) {
+         this.isPlaying = false
+         this.progress = a
+         this.start = a
+         this.stop = b
 
-      async playThePiano(data, timeDelay) {
-         this.notes = utility.convertToArr(data)
-         this.setupRange()
-         //if there are no notes 
-         if (!this.notes.length) return;
+         this.rangeMinEl.setAttribute('min', this.start)
+         this.rangeMinEl.setAttribute('max', this.stop)
 
-         try {
+         this.rangeMaxEl.setAttribute('min', this.start)
+         this.rangeMaxEl.setAttribute('max', this.stop)
 
-            this.isPlaying = true;
-            while (this.isPlaying) {
-               this.deactivateAll();
+         this.rangeMinEl.value = this.start;
+         this.rangeMaxEl.value = this.stop;
 
-               if (this.progress == this.rangeMax) {
-                  this.progress = this.rangeMin - 1;
-                  this.progressBar.style.width = `${(this.progress) * 100 / this.notes.length}%`;
-                  await utility.delay(2 * timeDelay);
-               }
-
-
-               this.keys[this.notes[this.progress++]].activate();
-               this.progressBar.style.width = `${(this.progress) * 100 / this.notes.length}%`;
-               await utility.delay(timeDelay);
-            }
-         } catch (e) {
-            alert(e)
-            this.isPlaying = false;
-            this.progress = 0;
-            this.rangeMax = 1;
-            this.rangeMin = 1;
+         if (this.notes.length) {
+            this.progressBar.style.width = '1%';
+            // this.progressBar.style.width = `${(this.progress) * 100 / this.notes.length}%`;
+            this.rangeMinEl.parentElement.children[0].innerText = `Min range : ${this.start}`
+            this.rangeMaxEl.parentElement.children[0].innerText = `Max range : ${this.stop}`
+         }
+         else {
+            this.progressBar.style.width = '1%';
+            this.rangeMinEl.parentElement.children[0].innerText = `Min range`
+            this.rangeMaxEl.parentElement.children[0].innerText = `Max range`
          }
       }
+      async loop() {
+         this.deactivateAll();
 
-      setupEventListeners(timeDelay = 750) {
+         if (this.progress > this.stop) {
+            this.progress = this.start;
+            this.progressBar.style.width = `${(this.progress - 1) * 100 / this.notes.length}%`;
+            await utility.delay(2 * this.timeDelay);
+         }
+
+         if (this.isPlaying) {
+            this.keys[this.notes[this.progress - 1]].activate();
+            this.progressBar.style.width = `${(this.progress) * 100 / this.notes.length}%`;
+            await utility.delay(this.timeDelay);
+            this.progress++;
+         }
+      }
+      async playThePiano(data) {
+         if (this.isPlaying) {
+            this.deactivateAll()
+            this.isPlaying = false
+            await utility.delay(2 * this.timeDelay)
+         } else
+            await utility.delay(this.timeDelay)
+
+         this.notes = utility.convertToArr(data)
+         if (!this.notes.length) return;
+
+         this.resetRange(1, this.notes.length)
+
+         try {
+            this.isPlaying = true;
+            while (this.isPlaying)
+               await this.loop();
+         } catch (e) {
+            alert(e)
+            this.resetRange(1, 1)
+         }
+      }
+      updateRange() {
+         this.start = Number(this.rangeMinEl.value);
+         this.stop = Number(this.rangeMaxEl.value);
+
+         this.rangeMinEl.setAttribute('max', this.stop - 1)
+         this.rangeMaxEl.setAttribute('min', this.start + 1)
+
+         this.rangeMinEl.parentElement.children[0].innerText = `Min range : ${this.start}`
+         this.rangeMaxEl.parentElement.children[0].innerText = `Max range : ${this.stop}`
+         this.progress = this.start;
+      }
+      setupEventListeners() {
          this.form.addEventListener('submit', (e) => {
             e.preventDefault();
-            this.playThePiano(this.form[0].value, timeDelay)
+            this.playThePiano(this.form[0].value)
          })
          this.rangeMinEl.addEventListener('input', () => {
-            this.rangeMin = this.rangeMinEl.value;
-            this.rangeMaxEl.setAttribute('min', Number(this.rangeMin) + 1)
-            this.rangeMinEl.parentElement.children[0].innerText = `Min range : ${this.rangeMin}`
-            this.progress = this.rangeMin;
+            this.updateRange();
          })
          this.rangeMaxEl.addEventListener('input', () => {
-            this.rangeMax = this.rangeMaxEl.value;
-            this.rangeMinEl.setAttribute('max', Number(this.rangeMax) - 1)
-            this.rangeMaxEl.parentElement.children[0].innerText = `Max range : ${this.rangeMax}`
-            this.progress = this.rangeMin;
+            this.updateRange();
+         })
+         this.rangeDelay.addEventListener('input', () => {
+            this.timeDelay = Number(this.rangeDelay.value);
+            this.rangeDelay.parentElement.children[0].innerText = `Delay : ${this.timeDelay}`
          })
          this.form[2].addEventListener('click', (e) => {
             e.stopPropagation();
             e.preventDefault();
             this.deactivateAll();
             this.form[0].value = '';
-            this.isPlaying = false;
-            this.progress = 0;
-            this.rangeMin = 1
-            this.rangeMax = 1
-
-            this.rangeMinEl.setAttribute('min', 1)
-            this.rangeMinEl.setAttribute('max', 1)
-            this.rangeMinEl.setAttribute('value', 1)
-            this.rangeMinEl.parentElement.children[0].innerText = `Min range`
-
-            this.rangeMaxEl.setAttribute('min', 1)
-            this.rangeMaxEl.setAttribute('max', 1)
-            this.rangeMaxEl.setAttribute('value', 1)
-            this.rangeMaxEl.parentElement.children[0].innerText = `Max range`
+            this.notes = [];
+            this.resetRange();
          })
 
          const playlistsText = document.querySelectorAll('#playlists .song')
          for (let song of playlistsText) {
             let notes = song.querySelector('.notes')
             let btn = song.querySelector('button')
-
             btn.addEventListener('click', () => {
-               this.playThePiano(notes.innerText, timeDelay)
+               this.playThePiano(notes.innerText)
             })
          }
       }
@@ -148,9 +191,7 @@ const pianoModule = (() => {
             else
                content += utility.createWhiteKey(id, key.name, i);
 
-      content += '</div>'
-
-      content += utility.form;
+      content += '</div>' + utility.form;
 
       myPiano.innerHTML = content;
    }
