@@ -1,5 +1,6 @@
 const pianoModule = (() => {
    'use strict';
+
    class Key {
       constructor(pianoId, id, oktawa) {
          this.id = id.toUpperCase();
@@ -9,9 +10,15 @@ const pianoModule = (() => {
 
          this.key.addEventListener('click', async (e) => {
             e.stopPropagation();
-            this.sound.pause();
-            this.sound.currentTime = 0;
-            this.sound.play();
+
+            try {
+               document.querySelector('#records .rec').innerHTML += this.id + this.oktawa + ' ';
+            } catch (e) {
+               console.log(e)
+            }
+
+
+            this.deactivate();
             this.activate('bg-danger');
             await utility.delay(250);
             this.deactivate('bg-danger', false);
@@ -164,6 +171,13 @@ const pianoModule = (() => {
             this.form[0].value = '';
             this.notes = [];
             this.resetRange();
+
+            try {
+               document.querySelector('#records .rec').innerHTML = '';
+            } catch (e) {
+               console.log(e)
+            }
+
          })
 
          const playlistsText = document.querySelectorAll('#playlists .song')

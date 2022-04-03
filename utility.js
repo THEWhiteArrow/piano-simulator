@@ -60,7 +60,7 @@ const utility = (() => {
          </div>
          <div class="d-flex">
             <button class="btn btn-success d-flex col-10 justify-content-center">Start </button>
-            <button class="btn btn-warning text-white d-flex col-2 justify-content-center">Stop </button>
+            <button class="btn btn-warning text-white d-flex col-2 justify-content-center">Stop / Clear</button>
          </div>
          <div class="d-flex row">
             <div class="d-flex col-4 flex-column">
