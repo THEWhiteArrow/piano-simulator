@@ -7,8 +7,9 @@ const pianoModule = (() => {
          this.oktawa = oktawa;
          this.key = document.getElementById(pianoId + this.id + this.oktawa);
       }
-      activate(className = 'bg-success') { if (this.key != undefined) this.key.classList.add(className); }
-      deactivate(className = 'bg-success') { if (this.key != undefined) this.key.classList.remove(className); }
+      activate(className = 'bg-success') { if (this.key != undefined) { this.key.classList.add(className); this.key.classList.add('text-white') } }
+      deactivate(className = 'bg-success') { if (this.key != undefined) { this.key.classList.remove(className); this.key.classList.remove('text-white') } }
+
    }
    const createKey = (pianoId, id, oktawa) => (new Key(pianoId, id, oktawa));
 
