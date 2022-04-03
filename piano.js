@@ -1,130 +1,155 @@
 const pianoModule = (() => {
    'use strict';
-   const helpers = [
-      { name: 'A', isSharp: true },
-      { name: 'B', isSharp: false },
-      { name: 'C', isSharp: true },
-      { name: 'D', isSharp: true },
-      { name: 'E', isSharp: false },
-      { name: 'F', isSharp: true },
-      { name: 'G', isSharp: true },
-   ]
 
    class Key {
-      constructor(id, oktawa) {
+      constructor(pianoId, id, oktawa) {
          this.id = id.toUpperCase();
          this.oktawa = oktawa;
-         this.key = document.getElementById(this.id + this.oktawa);
+         this.key = document.getElementById(pianoId + this.id + this.oktawa);
       }
-      activate() { if (this.key != undefined) this.key.classList.add('bg-success'); }
-      deactivate() { if (this.key != undefined) this.key.classList.remove('bg-success'); }
+      activate(className = 'bg-success') { if (this.key != undefined) this.key.classList.add(className); }
+      deactivate(className = 'bg-success') { if (this.key != undefined) this.key.classList.remove(className); }
    }
-   const createKey = (id, oktawa) => (new Key(id, oktawa));
+   const createKey = (pianoId, id, oktawa) => (new Key(pianoId, id, oktawa));
 
-   const convertToArr = (text) => {
-      text += ' '
-      let arr = []
-      for (let i = 0; i < text.length; ++i)
-         if (text[i] != ' ')
-            for (let j = i + 1; j < text.length; ++j)
-               if (text[j] == ' ') {
-                  arr.push(text.substr(i, j - i))
-                  i = j;
-                  break;
-               }
-      return arr;
-   }
 
    class Piano {
       constructor(pianoId, a, b) {
          this.pianoId = pianoId;
+         this.isPlaying = false;
          this.lowest = a;
+         this.progress = 0;
          this.highest = b;
          this.keys = {};
-         this.intervalId = 0;
          this.form = document.querySelector(`#${this.pianoId} form`)
          this.progressBar = document.querySelector(`#${this.pianoId} form #progressBar`)
+         this.rangeMinEl = document.querySelector(`#${this.pianoId} form #rangeMin`)
+         this.rangeMaxEl = document.querySelector(`#${this.pianoId} form #rangeMax`)
+         this.rangeMin = 1
+         this.rangeMax = 1
+         this.notes = []
 
          for (let i = this.lowest; i <= this.highest; ++i)
-            for (let h of helpers)
-               if (h.isSharp) {
-                  this.keys[`${h.name}${i}`] = createKey(h.name, i);
-                  this.keys[`${h.name}S${i}`] = createKey(h.name + 'S', i);
+            for (let key of utility.keys)
+               if (key.isSharp) {
+                  this.keys[`${key.name}${i}`] = createKey(this.pianoId, key.name, i);
+                  this.keys[`${key.name}S${i}`] = createKey(this.pianoId, key.name + 'S', i);
                } else
-                  this.keys[`${h.name}${i}`] = createKey(h.name, i);
+                  this.keys[`${key.name}${i}`] = createKey(this.pianoId, key.name, i);
       }
-      deactivateAll() {
+      deactivateAll(className = 'bg-success') {
          for (let key in this.keys)
-            this.keys[key].deactivate()
+            this.keys[key].deactivate(className)
       }
-      setupFormListener(delay = 750) {
+      setupRange() {
+         this.progress = 0
+         this.rangeMax = this.notes.length
+         this.rangeMinEl.setAttribute('max', this.rangeMax)
+         this.rangeMaxEl.setAttribute('max', this.rangeMax)
+         this.rangeMaxEl.value = this.rangeMax;
+         this.rangeMinEl.parentElement.children[0].innerText = `Min range : ${this.rangeMin}`
+         this.rangeMaxEl.parentElement.children[0].innerText = `Max range : ${this.rangeMax}`
+      }
+
+      async playThePiano(data, timeDelay) {
+         this.notes = utility.convertToArr(data)
+         this.setupRange()
+         //if there are no notes 
+         if (!this.notes.length) return;
+
+         try {
+
+            this.isPlaying = true;
+            while (this.isPlaying) {
+               this.deactivateAll();
+
+               if (this.progress == this.rangeMax) {
+                  this.progress = this.rangeMin - 1;
+                  this.progressBar.style.width = `${(this.progress) * 100 / this.notes.length}%`;
+                  await utility.delay(2 * timeDelay);
+               }
+
+
+               this.keys[this.notes[this.progress++]].activate();
+               this.progressBar.style.width = `${(this.progress) * 100 / this.notes.length}%`;
+               await utility.delay(timeDelay);
+            }
+         } catch (e) {
+            alert(e)
+            this.isPlaying = false;
+            this.progress = 0;
+            this.rangeMax = 1;
+            this.rangeMin = 1;
+         }
+      }
+
+      setupEventListeners(timeDelay = 750) {
          this.form.addEventListener('submit', (e) => {
             e.preventDefault();
-            clearInterval(this.intervalId);
-
-            const data = this.form[0].value.toUpperCase().replaceAll('#', 'S');
-            const notes = convertToArr(data);
-
-            // MAY WISH TO CHANGE TO PROMISES IN THE FUTURE
-            let progress = 0
-            this.intervalId = setInterval(() => {
-               if (progress == notes.length) progress = 0;
-               this.deactivateAll();
-               this.keys[notes[progress++]].activate();
-               this.progressBar.style.width = `${progress * 100 / notes.length}%`;
-            }, delay);
+            this.playThePiano(this.form[0].value, timeDelay)
          })
-
+         this.rangeMinEl.addEventListener('input', () => {
+            this.rangeMin = this.rangeMinEl.value;
+            this.rangeMaxEl.setAttribute('min', Number(this.rangeMin) + 1)
+            this.rangeMinEl.parentElement.children[0].innerText = `Min range : ${this.rangeMin}`
+            this.progress = this.rangeMin;
+         })
+         this.rangeMaxEl.addEventListener('input', () => {
+            this.rangeMax = this.rangeMaxEl.value;
+            this.rangeMinEl.setAttribute('max', Number(this.rangeMax) - 1)
+            this.rangeMaxEl.parentElement.children[0].innerText = `Max range : ${this.rangeMax}`
+            this.progress = this.rangeMin;
+         })
          this.form[2].addEventListener('click', (e) => {
             e.stopPropagation();
             e.preventDefault();
-            clearInterval(this.intervalId);
             this.deactivateAll();
             this.form[0].value = '';
+            this.isPlaying = false;
+            this.progress = 0;
+            this.rangeMin = 1
+            this.rangeMax = 1
+
+            this.rangeMinEl.setAttribute('min', 1)
+            this.rangeMinEl.setAttribute('max', 1)
+            this.rangeMinEl.setAttribute('value', 1)
+            this.rangeMinEl.parentElement.children[0].innerText = `Min range`
+
+            this.rangeMaxEl.setAttribute('min', 1)
+            this.rangeMaxEl.setAttribute('max', 1)
+            this.rangeMaxEl.setAttribute('value', 1)
+            this.rangeMaxEl.parentElement.children[0].innerText = `Max range`
          })
+
+         const playlistsText = document.querySelectorAll('#playlists .song')
+         for (let song of playlistsText) {
+            let notes = song.querySelector('.notes')
+            let btn = song.querySelector('button')
+
+            btn.addEventListener('click', () => {
+               this.playThePiano(notes.innerText, timeDelay)
+            })
+         }
       }
+
    }
    const createPiano = (pianoId, a = 1, b = 4) => (new Piano(pianoId, a, b));
 
 
-   const createWhiteKey = (name, oktawa) => (
-      `<div id="${name}${oktawa}" class="key white">${name}${oktawa}</div>`
-   )
-   const createWhiteBlackKey = (name, oktawa) => (
-      `
-      <div id="${name}${oktawa}" class="key white">
-         ${name}${oktawa}
-         <div id="${name}S${oktawa}" class="key black">${name}</div>
-      </div>
-      `
-   )
    const buyPiano = (id, a = 1, b = 4) => {
       const myPiano = document.getElementById(id);
       myPiano.classList.add('d-flex', 'flex-column', 'align-items-center')
       let content = '<div id="keys" class="d-flex flex-row">'
       for (let i = a; i <= b; ++i)
-         for (let h of helpers)
-            if (h.isSharp)
-               content += createWhiteBlackKey(h.name, i)
+         for (let key of utility.keys)
+            if (key.isSharp)
+               content += utility.createWhiteBlackKey(id, key.name, i)
             else
-               content += createWhiteKey(h.name, i);
+               content += utility.createWhiteKey(id, key.name, i);
 
       content += '</div>'
 
-      content += `
-      <form id="form" class="mt-5 mb-3 px-0 d-flex flex-column container">
-         <div id="progressBarTrack" class="bar d-flex bg-dark">
-            <div id="progressBar" class="bar bg-danger" style="width:0%;"></div>  
-         </div>
-         <div class="input-group mb-2">
-            <input type="text" class="form-control" placeholder="Notes" aria-label="Notes">
-         </div>
-         <div class="d-flex">
-            <button class="btn btn-success d-flex col-10 justify-content-center">Convert </button>
-            <button class="btn btn-warning text-white d-flex col-2 justify-content-center">Stop </button>
-         </div>
-      </form>
-      `
+      content += utility.form;
 
       myPiano.innerHTML = content;
    }
@@ -132,7 +157,4 @@ const pianoModule = (() => {
    return { buyPiano, createPiano };
 })();
 
-pianoModule.buyPiano('piano', 1, 4);
-const piano = pianoModule.createPiano('piano', 1, 4);
-piano.setupFormListener();
 
