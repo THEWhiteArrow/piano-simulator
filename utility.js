@@ -56,8 +56,9 @@ const utility = (() => {
 
    const form = `
       <form id="form" class="mt-5 mb-3 px-0 d-flex flex-column container">
+         <div id="progressBarCounter" class="fs-6 text-center">0</div>
          <div id="progressBarTrack" class="bar d-flex bg-dark">
-            <div id="progressBar" class="bar bg-danger"></div>  
+            <div id="progressBar" class="bar bg-danger"></div>        
          </div>
          <div class="input-group mb-2">
             <input type="text" class="form-control" placeholder="Notes" aria-label="Notes">
@@ -82,6 +83,39 @@ const utility = (() => {
          </div>  
       </form>
    `
+   const removeEl = async (el, animationspan) => {
+      el.classList.add('fadeOut');
+      await delay(animationspan);
+      el.remove();
+   }
 
-   return { keys, delay, convertToArr, createWhiteKey, createWhiteBlackKey, form, SHARP };
+   const appendAlert = async (text, timespan = 5000, animationspan = 500) => {
+      window.scrollTo(0, 0);
+      const alertSection = document.createElement('section');
+      alertSection.classList.add('bg-danger', 'alert', 'rounded-0', 'position-absolute', 'fadeIn', 'w-100')
+      alertSection.style.animationDuration = animationspan + 'ms';
+      alertSection.innerHTML = `
+         <div class="container">
+            <div class="row">
+         
+               <div class="col-10 d-flex flex-column align-items-center">
+                  <h5 class="mb-1 fs-4">ALERT!</h5>
+                  <span class="fs-6">
+                     ${text}
+                  </span>
+               </div>
+               <button class="col-2 btn btn-danger fs-5 shadow">X</button>
+
+            </div>
+         </div>
+      `
+      document.body.prepend(alertSection);
+
+      alertSection.querySelector('button').addEventListener('click', () => { removeEl(alertSection, animationspan) })
+      await delay(timespan);
+      removeEl(alertSection, timespan, animationspan)
+   }
+
+
+   return { keys, delay, convertToArr, createWhiteKey, createWhiteBlackKey, form, SHARP, appendAlert };
 })();

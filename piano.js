@@ -23,7 +23,6 @@ const pianoModule = (() => {
    }
    const createKey = (pianoId, id, oktawa) => (new Key(pianoId, id, oktawa));
 
-
    class Piano {
       constructor(pianoId, a, b) {
          this.pianoId = pianoId;
@@ -34,6 +33,7 @@ const pianoModule = (() => {
          this.keys = {};
          this.form = document.querySelector(`#${this.pianoId} form`)
          this.progressBar = document.querySelector(`#${this.pianoId} form #progressBar`)
+         this.progressBarCounterEl = document.querySelector(`#${this.pianoId} form #progressBarCounter`)
          this.rangeMinEl = document.querySelector(`#${this.pianoId} form #rangeMin`)
          this.rangeMaxEl = document.querySelector(`#${this.pianoId} form #rangeMax`)
          this.rangeDelay = document.querySelector(`#${this.pianoId} form #rangeDelay`)
@@ -60,7 +60,7 @@ const pianoModule = (() => {
       resetRange(a = 1, b = 1) {
          this.deactivateAll();
          this.isPlaying = false
-         this.progress = a
+         this.updateProgress(a)
          this.start = a
          this.stop = b
 
@@ -85,11 +85,15 @@ const pianoModule = (() => {
             this.rangeMaxEl.parentElement.children[0].innerText = `Max range`
          }
       }
+      updateProgress(value) {
+         this.progress = value
+         this.progressBarCounterEl.innerText = this.progress
+      }
       async loop() {
          this.deactivateAll();
 
          if (this.progress > this.stop) {
-            this.progress = this.start;
+            this.updateProgress(this.start)
             this.progressBar.style.width = `${(this.progress - 1) * 100 / this.notes.length}%`;
             await utility.delay(2 * this.timeDelay);
             if (!this.isPlaying) return;
@@ -100,7 +104,7 @@ const pianoModule = (() => {
          // this.keys[this.notes[this.progress - 1]].activate();
          this.progressBar.style.width = `${(this.progress) * 100 / this.notes.length}%`;
          await utility.delay(this.timeDelay);
-         this.progress++;
+         this.updateProgress(this.progress + 1);
 
       }
       async playThePiano(data) {
@@ -112,7 +116,10 @@ const pianoModule = (() => {
             await utility.delay(this.timeDelay)
 
          this.notes = utility.convertToArr(data)
-         if (!this.notes.length) return;
+         if (!this.notes[0].length) {
+            utility.appendAlert('You either need to provide some notes in the form field or choose a track to play...', 7000, 500);
+            return
+         }
 
          this.resetRange(1, this.notes.length)
 
@@ -134,7 +141,7 @@ const pianoModule = (() => {
 
          this.rangeMinEl.parentElement.children[0].innerText = `Min range : ${this.start}`
          this.rangeMaxEl.parentElement.children[0].innerText = `Max range : ${this.stop}`
-         this.progress = this.start;
+         this.updateProgress(this.start)
       }
       async recordKey(keyId) {
          try {
